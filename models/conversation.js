@@ -1,9 +1,6 @@
 import mongoose from 'mongoose';
 
 const conversationSchema = new mongoose.Schema({
-  conversationId: {
-    type: String,
-  },
   threadId: {
     type: String,
   },
