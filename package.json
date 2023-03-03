@@ -12,9 +12,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@keyv/mongo": "^2.1.8",
     "chatgpt": "^5.0.5",
     "discord.js": "^14.7.1",
     "dotenv": "^16.0.3",
+    "keyv": "^4.5.2",
     "mongoose": "^7.0.0"
   },
   "devDependencies": {

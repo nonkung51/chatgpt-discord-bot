@@ -1,23 +1,44 @@
-import { Client, Events, GatewayIntentBits, EmbedBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+import { 
+	Client, 
+	Events, 
+	GatewayIntentBits, 
+	EmbedBuilder, 
+	ButtonBuilder, 
+	ButtonStyle 
+} from 'discord.js';
+
+import { ActionRowBuilder } from '@discordjs/builders';
+
 import mongoose from 'mongoose';
+import Conversation from './models/conversation.js';
+
+import { ChatGPTAPI } from 'chatgpt';
+import Keyv from 'keyv'
 
 import dotenv from 'dotenv'
 dotenv.config()
+
+const client = new Client({ 
+	intents: [
+		GatewayIntentBits.Guilds, 
+		GatewayIntentBits.GuildMessages, 
+		GatewayIntentBits.MessageContent
+	] 
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true })
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.log(err));
 
-import Conversation from './models/conversation.js';
-
-import { ChatGPTAPI } from 'chatgpt';
-import { ActionRowBuilder } from '@discordjs/builders';
-
+const keyv = new Keyv(process.env.MONGO_URI);
 const api = new ChatGPTAPI({
 	apiKey: process.env.OPENAI_API_KEY,
-})
+	messageStore: keyv
+});
+
+
+/// Bot Logic
 
 client.once(Events.ClientReady, () => {
 	console.log('Ready!');
@@ -25,7 +46,6 @@ client.once(Events.ClientReady, () => {
 
 client.on(Events.MessageCreate, async (message) => {
 	if (message.channel.name === "bot" && !message.author.bot) {
-		// inside a command, event listener, etc.
 		const exampleEmbed = new EmbedBuilder()
 			.setColor(0x0099FF)
 			.setTitle('ChatGPT')
@@ -102,6 +122,5 @@ const splitMessages = (message) => {
 
 	return messages;
 }
-
 
 client.login(process.env.DISCORD_TOKEN);
