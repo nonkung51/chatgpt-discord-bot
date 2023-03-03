@@ -1,4 +1,4 @@
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits, EmbedBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 import mongoose from 'mongoose';
 
@@ -13,38 +13,37 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true })
 import Conversation from './models/conversation.js';
 
 import { ChatGPTAPI } from 'chatgpt';
+import { ActionRowBuilder } from '@discordjs/builders';
 
 const api = new ChatGPTAPI({
 	apiKey: process.env.OPENAI_API_KEY,
 })
 
-// client.commands = new Collection();
-
 client.once(Events.ClientReady, () => {
 	console.log('Ready!');
 });
 
-client.on(Events.InteractionCreate, async interaction => {
-	console.log(`Received interaction: "${interaction}" from ${interaction.user.tag}`)
-	if (!interaction.isChatInputCommand()) return;
-
-	const command = client.commands.get(interaction.commandName);
-
-	if (!command) return;
-
-	try {
-		await command.execute(interaction);
-	} catch (error) {
-		console.error(error);
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-		}
-	}
-});
-
 client.on(Events.MessageCreate, async (message) => {
+	if (message.channel.name === "bot" && !message.author.bot) {
+		// inside a command, event listener, etc.
+		const exampleEmbed = new EmbedBuilder()
+			.setColor(0x0099FF)
+			.setTitle('ChatGPT')
+			.setURL('https://chat.openai.com/')
+			.setDescription('Create a new thread to interact with ChatGPT!')
+			.setTimestamp()
+
+		const row = new ActionRowBuilder()
+			.addComponents(
+				new ButtonBuilder()
+					.setCustomId('create-new-thread')
+					.setLabel('Create new Thread')
+					.setStyle(ButtonStyle.Primary),
+			);
+
+		message.channel.send({ embeds: [exampleEmbed], components: [row] });
+	}
+
 	if (message.channel.parent.name === "bot" && !message.author.bot) {
 		try {
 			const existingConversation = await Conversation.findOne({ threadId: message.channelId });
@@ -75,6 +74,18 @@ client.on(Events.MessageCreate, async (message) => {
 		} catch (error) {
 			message.channel.send(`Something went wrong! ${error}`);
 		}
+	}
+});
+
+client.on(Events.InteractionCreate, async (interaction) => {
+	if (interaction.isButton() && interaction.customId === 'create-new-thread') {
+		const thread = await interaction.channel.threads.create({
+			name: `${interaction.user.username} created conversation at ${interaction.createdTimestamp}`,
+			autoArchiveDuration: 60,
+			reason: 'New thread for chatting with ChatGPT, Human\'s best friend!',
+		});
+
+		interaction.reply(`Done! new thread created name [${thread.name}]`);
 	}
 });
 
